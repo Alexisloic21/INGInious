@@ -4,21 +4,23 @@
 # more information about the licensing of this file.
 
 """ Manages users data and session """
-import logging
 import hashlib
-import flask
-from typing import Dict, Optional
-
-from werkzeug.exceptions import NotFound
+import logging
+import os
 from abc import ABCMeta, abstractmethod
+from binascii import hexlify
+from collections import OrderedDict, namedtuple
 from datetime import datetime
 from datetime import timedelta
 from functools import reduce
-from natsort import natsorted
-from collections import OrderedDict, namedtuple
+from typing import Dict, Optional
+
 import pymongo
-from binascii import hexlify
-import os
+from natsort import natsorted
+from pymongo import ReturnDocument
+from werkzeug.exceptions import NotFound
+
+import flask
 
 
 class AuthInvalidInputException(Exception):
@@ -288,15 +290,25 @@ class UserManager:
         Authenticate the user in database
         :param username: Username/Login
         :param password: User password
-        :return: Returns a dict represrnting the user
+        :return: Returns a dict representing the user
         """
-        password_hash = hashlib.sha512(password.encode("utf-8")).hexdigest()
+        password_hash = self.hash_password(password)
 
         user = self._database.users.find_one(
             {"username": username, "password": password_hash, "activate": {"$exists": False}})
 
         return user if user is not None and self.connect_user(username, user["realname"], user["email"],
-                                                              user["language"], user.get("tos_accepted", False)) else None
+                                                              user["language"],
+                                                              user.get("tos_accepted", False)) else None
+
+    def is_user_activated(self, username):
+        """
+        Verify if user is activated
+        :param username: Username/Login
+        :return Returns a boolean with value of activation"""
+        user = self._database.users.find_one(
+            {"username": username, "activate": {"$exists": True, "$nin": [None]}})
+        return user is None
 
     def connect_user(self, username, realname, email, language, tos_accepted):
         """ Opens a session for the user
@@ -324,6 +336,20 @@ class UserManager:
                               self.session_email(), ip)
         self._destroy_session()
 
+    def get_users(self, limit=0, skip=0):
+        """
+        list all users
+        :param limit A limit of users requested
+        :param skip A quantity of users to skip
+        :return A dictionary with info of users
+        """
+        retval = {}
+        infos = self._database.users.find().skip(skip).limit(limit)
+        for info in infos:
+            retval[info["username"]] = UserInfo(info["realname"], info["email"], info["username"], info["bindings"],
+                                                info["language"])
+        return retval, self._database.users.count()
+
     def get_users_info(self, usernames) -> Dict[str, Optional[UserInfo]]:
         """
         :param usernames: a list of usernames
@@ -334,7 +360,8 @@ class UserManager:
 
         infos = self._database.users.find({"username": {"$in": remaining_users}})
         for info in infos:
-            retval[info["username"]] = UserInfo(info["realname"], info["email"], info["username"], info["bindings"], info["language"])
+            retval[info["username"]] = UserInfo(info["realname"], info["email"], info["username"], info["bindings"],
+                                                info["language"])
 
         return retval
 
@@ -384,7 +411,29 @@ class UserManager:
             apikey = retval.get("apikey", None)
         return apikey
 
+    def get_user_activate_hash(self, username):
+        """
+        Get activate hash for a user
+        :return the activate hash
+        """
+        user = self._database.users.find_one({"username": username})
+        return user["activate"] if user and "activate" in user else None
+
+    def activate_user(self, activate_hash):
+        """Active a user based on his/her activation hash
+        :param activate_hash: The activation hash of a user
+        :return A boolean if the user was found and updated
+        """
+        user = self._database.users.find_one_and_update({"activate": activate_hash}, {"$unset": {"activate": True}})
+        return user is None
+
     def bind_user(self, auth_id, user):
+        """
+        Add a binding method to a user
+        :param auth_id: The binding method id
+        :param user: User object
+        :return: Boolean if method has been add
+        """
         username, realname, email, additional = user
 
         auth_method = self.get_auth_method(auth_id)
@@ -429,6 +478,54 @@ class UserManager:
                 self.connect_user("", realname, email, self._session.get("language", "en"), False)
 
         return True
+
+    def revoke_binding(self, username, binding_id):
+        """
+        Revoke a binding method for a user
+        :param binding_id: The binding method id
+        :param username: username of the user
+        :return: Boolean if error occurred and message if necessary
+        """
+        user_data = self._database.users.find_one({"username": username})
+        if binding_id not in self.get_auth_methods().keys():
+            error = True
+            msg = _("Incorrect authentication binding.")
+        elif len(user_data.get("bindings", {}).keys()) > 1 or "password" in user_data:
+            user_data = self._database.users.find_one_and_update(
+                {"username": username},
+                {"$unset": {"bindings." + binding_id: 1}},
+                return_document=ReturnDocument.AFTER)
+            msg = ""
+            error = False
+        else:
+            error = True
+            msg = _("You must set a password before removing all bindings.")
+        return error, msg
+
+    def delete_user(self, username):
+        """
+        Delete a user
+        :param username: the username of the user
+        """
+        self._database.users.remove({"username": username})
+
+    def create_user(self, values):
+        """
+        Create a new user
+        :param values: Dictionary of fields
+        :return: An error message if something went wrong else None
+        """
+        already_exits_user = self._database.users.find_one(
+            {"$or": [{"username": values["username"]}, {"email": values["email"]}]})
+        if already_exits_user is not None:
+            return _("User could not be created.")
+        self._database.users.insert({"username": values["username"],
+                                     "realname": values["realname"],
+                                     "email": values["email"],
+                                     "password": self.hash_password(values["password"]),
+                                     "bindings": {},
+                                     "language": "en"})
+        return None
 
     ##############################################
     #      User task/course info management      #
@@ -551,7 +648,8 @@ class UserManager:
     def user_saw_task(self, username, courseid, taskid):
         """ Set in the database that the user has viewed this task """
         self._database.user_tasks.update_one({"username": username, "courseid": courseid, "taskid": taskid},
-                                             {"$setOnInsert": {"username": username, "courseid": courseid, "taskid": taskid,
+                                             {"$setOnInsert": {"username": username, "courseid": courseid,
+                                                               "taskid": taskid,
                                                                "tried": 0, "succeeded": False, "grade": 0.0,
                                                                "submissionid": None, "state": ""}},
                                              upsert=True)
@@ -919,3 +1017,16 @@ class UserManager:
     @classmethod
     def generate_api_key(cls):
         return hexlify(os.urandom(40)).decode('utf-8')
+
+    @classmethod
+    def hash_password(cls, content):
+        """
+        :param content: a str input
+        :return a hash of str input
+        """
+        return hashlib.sha512(content.encode("utf-8")).hexdigest()
+
+    def get_activated_users(self, usernames):
+        users = list(self._database.users.find(
+            {"username": {"$in": usernames}, "activate": {"$exists": False}}, {"_id": 0, "username": 1}))
+        return [user["username"] for user in users]

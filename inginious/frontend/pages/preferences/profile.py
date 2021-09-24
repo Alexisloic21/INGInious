@@ -4,8 +4,8 @@
 # more information about the licensing of this file.
 
 """ Profile page """
-import hashlib
 import re
+
 import flask
 from pymongo import ReturnDocument
 from werkzeug.exceptions import NotFound
@@ -53,8 +53,8 @@ class ProfilePage(INGIniousAuthPage):
             msg = _("Passwords don't match !")
             return result, msg, error
         elif self.app.allow_registration and len(data["passwd"]) >= 6:
-            oldpasswd_hash = hashlib.sha512(data["oldpasswd"].encode("utf-8")).hexdigest()
-            passwd_hash = hashlib.sha512(data["passwd"].encode("utf-8")).hexdigest()
+            oldpasswd_hash = self.user_manager.hash_password(data["oldpasswd"])
+            passwd_hash = self.user_manager.hash_password(data["passwd"])
 
             match = {"username": self.user_manager.session_username()}
             if "password" in userdata:

@@ -5,19 +5,21 @@
 
 """ Custom installer for the web app """
 
-import hashlib
 import os
+import re
 import tarfile
 import tempfile
-import re
 import urllib.request
 from binascii import hexlify
+
 import docker
 from docker.errors import BuildError
 from gridfs import GridFS
 from pymongo import MongoClient
-from inginious import __version__
+
 import inginious.common.custom_yaml as yaml
+from inginious import __version__
+from inginious.frontend.user_manager import UserManager
 
 HEADER = '\033[95m'
 INFO = '\033[94m'
@@ -556,7 +558,7 @@ class Installer:
         database.users.insert_one({"username": username,
                                    "realname": realname,
                                    "email": email,
-                                   "password": hashlib.sha512(password.encode("utf-8")).hexdigest(),
+                                   "password": UserManager.hash_password(password),
                                    "bindings": {},
                                    "language": "en"})
 
