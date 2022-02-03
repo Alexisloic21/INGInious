@@ -177,6 +177,9 @@ class UserManager:
     def session_language(self):
         """ Returns the current session language """
         return self._session.get("language", "en")
+    def session_darktheme(self):
+        """Returns if the current session is in dark theme"""
+        return self._session.get("darktheme",False)
 
     def session_api_key(self):
         """ Returns the API key for the current user. Created on first demand. """
@@ -199,8 +202,10 @@ class UserManager:
 
     def set_session_language(self, language):
         self._session["language"] = language
+    def set_session_darktheme(self,darktheme):
+        self._session["darktheme"] = darktheme
 
-    def _set_session(self, username, realname, email, language, tos_signed):
+    def _set_session(self, username, realname, email, language, tos_signed,darktheme):
         """ Init the session. Preserves potential LTI information. """
         self._session["loggedin"] = True
         self._session["email"] = email
@@ -209,6 +214,7 @@ class UserManager:
         self._session["language"] = language
         self._session["tos_signed"] = tos_signed
         self._session["token"] = None
+        self._session["darktheme"] = darktheme
         if "lti" not in self._session:
             self._session["lti"] = None
 
@@ -221,6 +227,7 @@ class UserManager:
         self._session["token"] = None
         self._session["lti"] = None
         self._session["tos_signed"] = None
+        self._session["darktheme"] = None
 
     def create_lti_session(self, user_id, roles, realname, email, course_id, task_id, consumer_key, outcome_service_url,
                            outcome_result_id, tool_name, tool_desc, tool_url, context_title, context_label):
@@ -296,9 +303,9 @@ class UserManager:
             {"username": username, "password": password_hash, "activate": {"$exists": False}})
 
         return user if user is not None and self.connect_user(username, user["realname"], user["email"],
-                                                              user["language"], user.get("tos_accepted", False)) else None
+                                                              user["language"], user.get("tos_accepted", False),user.get("darktheme",False)) else None
 
-    def connect_user(self, username, realname, email, language, tos_accepted):
+    def connect_user(self, username, realname, email, language, tos_accepted,darktheme):
         """ Opens a session for the user
 
         :param username: Username
@@ -307,11 +314,11 @@ class UserManager:
         """
 
         self._database.users.update_one({"email": email},
-                                        {"$set": {"realname": realname, "username": username, "language": language}},
+                                        {"$set": {"realname": realname, "username": username, "language": language,"darktheme" : darktheme}},
                                         upsert=True)
         ip = flask.request.remote_addr
         self._logger.info("User %s connected - %s - %s - %s", username, realname, email, ip)
-        self._set_session(username, realname, email, language, tos_accepted)
+        self._set_session(username, realname, email, language, tos_accepted,darktheme)
         return True
 
     def disconnect_user(self):
@@ -397,7 +404,7 @@ class UserManager:
         if user_profile and not self.session_logged_in():
             # Sign in
             self.connect_user(user_profile["username"], user_profile["realname"], user_profile["email"],
-                              user_profile["language"], user_profile.get("tos_accepted", False))
+                              user_profile["language"], user_profile.get("tos_accepted", False),user_profile.get("darktheme",False))
         elif user_profile and self.session_username() == user_profile["username"]:
             # Logged in, refresh fields if found profile username matches session username
             self._database.users.find_one_and_update({"username": self.session_username()},
@@ -425,8 +432,10 @@ class UserManager:
                                                  "realname": realname,
                                                  "email": email,
                                                  "bindings": {auth_id: [username, additional]},
-                                                 "language": self._session.get("language", "en")})
-                self.connect_user("", realname, email, self._session.get("language", "en"), False)
+                                                 "language": self._session.get("language", "en"),
+                                                 "darktheme" : self._session.get("darktheme",False)
+                                                 })
+                self.connect_user("", realname, email, self._session.get("language", "en"), False,self._session.get("darktheme",False))
 
         return True
 

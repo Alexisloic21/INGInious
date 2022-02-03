@@ -99,6 +99,19 @@ class ProfilePage(INGIniousAuthPage):
 
         msg = _("Profile updated.")
 
+
+        value = bool(data.get("darktheme",False))
+        if(value != userdata.get("darktheme",False)):
+            result = self.database.users.find_one_and_update({"username": self.user_manager.session_username()},
+                                                             {"$set": {"darktheme": value}},
+                                                             return_document=ReturnDocument.AFTER)
+            if not result:
+                error = True
+                msg = _("error while setting dark theme")
+                return result,msg,error
+            else:
+                self.user_manager.set_session_darktheme(value)
+
         #updating tos
         if self.app.terms_page is not None and self.app.privacy_page is not None:
             self.database.users.find_one_and_update({"username": self.user_manager.session_username()},

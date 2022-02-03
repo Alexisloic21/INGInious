@@ -22,10 +22,21 @@
     <link href="{{get_homepath(True)}}/static/css/font-awesome.min.css" rel="stylesheet">
 
     <!-- INGInious Style -->
-    <link href="{{get_homepath(True)}}/static/css/INGInious.css?v2" rel="stylesheet">
-
     <!-- Codemirror Style -->
-    <link href="{{get_homepath(True)}}/static/css/codemirror.css" rel="stylesheet">
+        {% if user_manager is defined and user_manager.session_logged_in() %}
+            {% if user_manager.session_darktheme()%}
+                <link href="{{get_homepath(True)}}/static/css/INGIniousdark.css?v2" rel="stylesheet">
+                <link href="{{get_homepath(True)}}/static/css/codemirrordark.css" rel="stylesheet">
+            {% else %}
+            <link href="{{get_homepath(True)}}/static/css/INGInious.css?v2" rel="stylesheet">
+            <link href="{{get_homepath(True)}}/static/css/codemirror.css" rel="stylesheet">
+            {% endif %}
+        {% else %}
+            <link href="{{get_homepath(True)}}/static/css/INGInious.css?v2" rel="stylesheet">
+             <link href="{{get_homepath(True)}}/static/css/codemirror.css" rel="stylesheet">
+        {% endif %}
+
+   
 
     <!-- selectize -->
     <link href="{{get_homepath(True)}}/static/css/selectize.css" rel="stylesheet">
