@@ -6,7 +6,10 @@
   height: 300px;
   color: black;
 }
-
+.CodeMirror-lines span
+{
+  color: #d8dee9;
+}
 /* PADDING */
 
 .CodeMirror-lines {
