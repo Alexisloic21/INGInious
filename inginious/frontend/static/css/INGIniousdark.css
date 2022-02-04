@@ -4,6 +4,7 @@
 Code couleur: 
   - Font              :    #d8dee9 
   - Background        :    #191919
+  - Light BackGround  :    #252525
   - CodeBlock         :    #303841
   - Inputs            :    #272727
   - DisabledInputs    :    #474747
@@ -13,13 +14,24 @@ Code couleur:
 html {
   height: 100%;
 }
-/* Mixins */
-/* Fonts */
-/* Progress bars */
-.CodeMirror-line
+
+
+
+
+/*Override BootStrap Style*/
+
+/*Table Borders*/
+.table th, .table td ,.table thead th,.table-bordered
 {
-  color:#d8dee9  ;
+  border-color: #595959;
 }
+
+.modal-content
+{
+  background-color: #191919;
+  color: #  d8dee9;
+}
+/*Froms*/
 .form-control
 {
     display: block;
@@ -35,6 +47,7 @@ html {
     border-radius: 0;
     transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
+/*Cards*/
 .card
 {
     position: relative;
@@ -49,28 +62,10 @@ html {
     background: #191919;
     border-color: #595959;
 }
-.card:hover
+/* /!\ On override celui de bootstrap /!\ */
+.bg-light
 {
-  background-color: #212121;
-}
-.alert-warning ,.alert-success
-{
-  border-color: #191919;
-}
-.alert span
-{
-  color: white;
-}
-
-.card-footer
-{
-  background: #252525;
-  border-color: #595959;
-}
-.select-items,.select-selected,
-{
-   color: #d8dee9;
-   background-color: #272727;
+  background: #404040 !important; 
 }
 .form-control:disabled
 {
@@ -87,6 +82,64 @@ html {
     border-radius: 0;
     transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
+.card:hover
+{
+  background-color: #212121;
+}
+.card-footer,.card-header
+{
+  background: #252525;
+  border-color: #595959;
+}
+
+/*Alert Border*/
+.alert-warning ,.alert-success
+{
+  border-color: #191919;
+}
+.alert span
+{
+  color: white;
+}
+.page-item.disabled .page-link
+{
+  background: #252525;
+  color: #d8dee9 ;
+  border-color: #595959;
+}
+.page-item .page-link
+{
+  background: #474747;
+  color: #d8dee9 ;
+  border-color: #595959;
+}
+.table-success ,.table-danger,.table-active,.table-warning,.table-info,.table-dark
+{
+  color: black
+}
+/*Lists warning to not override Bootstrap group-item color !*/
+
+.checked-list-box :not(.list-group-item-primary,.state-icon)
+{
+  background: #252525;
+  color: #d8dee9 ;
+  border-color: #595959;
+}
+
+.tasks_list .list-group-item 
+{
+  background-color: #252525;
+  color: #d8dee9;
+  border-color: #595959;
+}
+.tasks_list .list-group-item  : hover
+{
+  background-color: #303030;
+}
+
+/* Mixins */
+/* Fonts */
+/* Progress bars */
 .progress-bar[aria-valuenow] {
   line-height: 18px !important;
   min-width: 30px;
@@ -185,6 +238,12 @@ form#task label {
   cursor: pointer;
 }
 /* Codemirror */
+
+.CodeMirror-line
+{
+  color:#d8dee9  ;
+}
+
 .cm-s-default {
   font-size: 1em;
   line-height: 1.5em;
@@ -302,7 +361,7 @@ body {
   border-right: 0;
   border-left: 0;
   border-radius: 0;
-  border-color: #cfcfcf;
+  border-color: #595959;
 }
 #inginious-sidebar-toggle {
   width: 50px;
