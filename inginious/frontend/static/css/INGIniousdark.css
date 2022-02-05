@@ -97,6 +97,30 @@ color: black;
   background-color: var(--BackgroundColor);
   color: #  d8dee9;
 }
+
+
+
+/*Scroll Bar*/
+::-webkit-scrollbar {
+  width: 15px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #131313;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background:#444444;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+
 /*Froms*/
 .form-control
 {
