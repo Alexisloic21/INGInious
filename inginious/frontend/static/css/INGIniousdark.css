@@ -36,8 +36,14 @@ html {
 
 /*Override BootStrap Style*/
 
+/*Litterals Blocks*/
+.literal-block
+{
+  color: var(--FontColor)
+}
 
  #inginious-sidebar-content > .list-group > .list-group-item-action:not(.list-group-item-info ,.list-group-item-success ,.list-group-item-danger,.list-group-item-active,.list-group-item-warning)
+}
 {
   background-color: var(--BackgroundColor);
   color: var(--FontColor);
